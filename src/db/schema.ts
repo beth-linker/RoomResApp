@@ -96,6 +96,28 @@ export const rateLimit = pgTable("rate_limit", {
   lastRequest: bigint("last_request", { mode: "number" }).notNull(),
 });
 
+export const apiTokens = pgTable(
+  "api_tokens",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    tokenHash: text("token_hash").notNull().unique(),
+    lastFour: text("last_four").notNull(),
+    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+    lastUsedAt: timestamp("last_used_at", { withTimezone: true }),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+    revokedBy: text("revoked_by").references(() => user.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("api_tokens_user_id_idx").on(table.userId),
+    index("api_tokens_expires_at_idx").on(table.expiresAt),
+  ],
+);
+
 export const rooms = pgTable(
   "rooms",
   {
@@ -178,6 +200,11 @@ export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
   bookings: many(bookings),
+  apiTokens: many(apiTokens),
+}));
+
+export const apiTokenRelations = relations(apiTokens, ({ one }) => ({
+  owner: one(user, { fields: [apiTokens.userId], references: [user.id] }),
 }));
 
 export const roomRelations = relations(rooms, ({ many }) => ({ bookings: many(bookings) }));

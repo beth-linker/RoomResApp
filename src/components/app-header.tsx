@@ -1,4 +1,4 @@
-import { CalendarDays, DoorOpen, Settings, UserRound } from "lucide-react";
+import { CalendarDays, DoorOpen, KeyRound, Settings, UserRound } from "lucide-react";
 import Link from "next/link";
 import { SignOutButton } from "@/components/sign-out-button";
 
@@ -12,6 +12,7 @@ export function AppHeader({ name, isAdmin }: { name: string; isAdmin: boolean })
         </Link>
         <nav aria-label="Main navigation" style={{ display: "flex", gap: ".45rem", alignItems: "center" }}>
           <Link className="button button-secondary" href="/schedule"><CalendarDays size={17} /><span className="nav-label">Schedule</span></Link>
+          <Link className="button button-quiet" href="/api-tokens"><KeyRound size={17} /><span className="nav-label">API</span></Link>
           {isAdmin && <Link className="button button-quiet" href="/admin"><Settings size={17} /><span className="nav-label">Admin</span></Link>}
           <span className="pill nav-label" style={{ background: "var(--mint)" }}><UserRound size={14} />{name}</span>
           <SignOutButton />

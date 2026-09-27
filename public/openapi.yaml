@@ -1,0 +1,314 @@
+openapi: 3.1.0
+info:
+  title: RoomRes REST API
+  version: 1.0.0
+  description: |
+    Manage conference-room availability and bookings from CLI and server-side clients.
+    Create a 30-day API token from the RoomRes **API tokens** screen, then send it as
+    `Authorization: Bearer <token>`.
+servers:
+  - url: /api/v1
+    description: Current RoomRes deployment
+tags:
+  - name: Rooms
+  - name: Bookings
+security:
+  - bearerAuth: []
+paths:
+  /rooms:
+    get:
+      tags: [Rooms]
+      summary: List active rooms
+      operationId: listRooms
+      responses:
+        "200":
+          description: Active rooms sorted by name.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Room"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+  /bookings:
+    get:
+      tags: [Bookings]
+      summary: List active bookings
+      description: |
+        Returns the shared schedule. All users can see booking titles, organizers,
+        rooms, and times. Private notes are returned only to the organizer and admins.
+        With no dates supplied, the window is seven days before through fourteen days
+        after the current time.
+      operationId: listBookings
+      parameters:
+        - name: start
+          in: query
+          description: Range start. Bookings overlapping the range are returned. Must be supplied together with `end`.
+          schema:
+            type: string
+            format: date-time
+        - name: end
+          in: query
+          description: Range end. Bookings overlapping the range are returned. The range may not exceed 31 days.
+          schema:
+            type: string
+            format: date-time
+        - name: roomId
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Matching active bookings.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data, meta]
+                properties:
+                  data:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Booking"
+                  meta:
+                    type: object
+                    required: [start, end]
+                    properties:
+                      start: { type: string, format: date-time }
+                      end: { type: string, format: date-time }
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/InvalidRequest"
+    post:
+      tags: [Bookings]
+      summary: Create a booking
+      operationId: createBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingWrite"
+            example:
+              roomId: 2a3a7ef4-a2ae-4eb9-b976-b11988524304
+              title: Planning session
+              notes: Bring the quarterly roadmap
+              startsAt: "2026-09-29T13:00:00Z"
+              endsAt: "2026-09-29T13:45:00Z"
+      responses:
+        "201":
+          description: Booking created. The authenticated token owner is the organizer.
+          headers:
+            Location:
+              schema: { type: string }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/BookingRecord"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "409":
+          $ref: "#/components/responses/BookingConflict"
+        "422":
+          $ref: "#/components/responses/InvalidRequest"
+  /bookings/{bookingId}:
+    parameters:
+      - $ref: "#/components/parameters/BookingId"
+    get:
+      tags: [Bookings]
+      summary: Get a booking
+      operationId: getBooking
+      responses:
+        "200":
+          description: Booking details. Notes are redacted unless visible to the caller.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Booking"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      tags: [Bookings]
+      summary: Update a booking
+      description: Organizers can update their own active bookings. Admin tokens can update any active booking.
+      operationId: updateBooking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingPatch"
+      responses:
+        "200":
+          description: Updated booking.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [data]
+                properties:
+                  data:
+                    $ref: "#/components/schemas/Booking"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "409":
+          $ref: "#/components/responses/BookingConflict"
+        "422":
+          $ref: "#/components/responses/InvalidRequest"
+    delete:
+      tags: [Bookings]
+      summary: Cancel a booking
+      description: Organizers can cancel their own future bookings. Admin tokens can cancel any active booking.
+      operationId: cancelBooking
+      responses:
+        "204":
+          description: Booking cancelled.
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/InvalidRequest"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: RoomRes API token
+  parameters:
+    BookingId:
+      name: bookingId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Unauthorized:
+      description: The bearer token is missing, invalid, expired, revoked, or belongs to an inactive user.
+      headers:
+        WWW-Authenticate:
+          schema: { type: string }
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    Forbidden:
+      description: The authenticated user cannot perform this operation.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: The requested booking was not found.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    InvalidRequest:
+      description: The request or booking window is invalid.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    BookingConflict:
+      description: The room or organizer already has an overlapping active booking.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+  schemas:
+    Room:
+      type: object
+      required: [id, name, capacity, color, amenities]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        capacity: { type: integer, minimum: 1 }
+        color: { type: string, pattern: '^#[0-9A-Fa-f]{6}$' }
+        amenities:
+          type: array
+          items: { type: string }
+    BookingWrite:
+      type: object
+      additionalProperties: false
+      required: [roomId, title, startsAt, endsAt]
+      properties:
+        roomId: { type: string, format: uuid }
+        title: { type: string, minLength: 2, maxLength: 100 }
+        notes:
+          type: [string, "null"]
+          maxLength: 1000
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+    BookingPatch:
+      type: object
+      additionalProperties: false
+      minProperties: 1
+      properties:
+        roomId: { type: string, format: uuid }
+        title: { type: string, minLength: 2, maxLength: 100 }
+        notes:
+          type: [string, "null"]
+          maxLength: 1000
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+    BookingRecord:
+      type: object
+      required: [id, roomId, organizerId, title, notes, startsAt, endsAt, cancelledAt, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        roomId: { type: string, format: uuid }
+        organizerId: { type: string }
+        title: { type: string }
+        notes: { type: [string, "null"] }
+        startsAt: { type: string, format: date-time }
+        endsAt: { type: string, format: date-time }
+        cancelledAt: { type: [string, "null"], format: date-time }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    Booking:
+      allOf:
+        - $ref: "#/components/schemas/BookingRecord"
+        - type: object
+          required: [roomName, organizerName, canManage]
+          properties:
+            roomName: { type: string }
+            organizerName: { type: string }
+            canManage: { type: boolean }
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [authentication_required, forbidden, not_found, invalid_request, booking_conflict, internal_error]
+            message: { type: string }
+            details: {}

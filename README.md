@@ -43,3 +43,14 @@ npm run typecheck
 npm test
 npm run build
 ```
+
+## REST API
+
+Signed-in users can create 30-day bearer tokens from **API tokens** in the app. The
+versioned API exposes active rooms and the shared booking schedule, and lets token
+owners create, update, and cancel their own bookings. Admin tokens can manage any
+booking. Private notes remain visible only to the organizer and admins.
+
+- Interactive documentation: `/api-docs`
+- OpenAPI 3.1 specification: `/openapi.yaml`
+- API base path: `/api/v1`
