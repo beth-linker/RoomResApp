@@ -1,0 +1,43 @@
+name: Datadog Code Security
+
+on:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  sast:
+    runs-on: ubuntu-latest
+    env:
+      DD_API_KEY: ${{ secrets.DD_API_KEY }}
+      DD_APP_KEY: ${{ secrets.DD_APP_KEY }}
+    steps:
+      - if: ${{ env.DD_API_KEY != '' && env.DD_APP_KEY != '' }}
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Scan first-party code
+        if: ${{ env.DD_API_KEY != '' && env.DD_APP_KEY != '' }}
+        uses: DataDog/datadog-static-analyzer-github-action@v3
+        with:
+          dd_api_key: ${{ secrets.DD_API_KEY }}
+          dd_app_key: ${{ secrets.DD_APP_KEY }}
+          dd_site: datadoghq.com
+          cpu_count: 2
+
+  sca:
+    runs-on: ubuntu-latest
+    env:
+      DD_API_KEY: ${{ secrets.DD_API_KEY }}
+      DD_APP_KEY: ${{ secrets.DD_APP_KEY }}
+    steps:
+      - if: ${{ env.DD_API_KEY != '' && env.DD_APP_KEY != '' }}
+        uses: actions/checkout@v6
+      - name: Scan dependencies and upload an SBOM
+        if: ${{ env.DD_API_KEY != '' && env.DD_APP_KEY != '' }}
+        uses: DataDog/datadog-sca-github-action@main
+        with:
+          dd_api_key: ${{ secrets.DD_API_KEY }}
+          dd_app_key: ${{ secrets.DD_APP_KEY }}
+          dd_site: datadoghq.com

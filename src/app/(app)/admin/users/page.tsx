@@ -1,0 +1,14 @@
+import { asc } from "drizzle-orm";
+import { ArrowLeft, UsersRound } from "lucide-react";
+import Link from "next/link";
+import { toggleUserAction, updateUserAction } from "@/app/actions";
+import { CreateUserForm, PasswordResetForm } from "@/components/admin-user-forms";
+import { getDb } from "@/db";
+import { user } from "@/db/schema";
+import { requireAdmin } from "@/lib/session";
+
+export default async function UsersAdminPage() {
+  const current = await requireAdmin();
+  const rows = await getDb().select().from(user).orderBy(asc(user.name));
+  return <main className="shell page"><Link href="/admin" className="button button-quiet"><ArrowLeft size={16} />Admin</Link><div style={{ margin: "1.5rem 0" }}><div className="eyebrow"><UsersRound size={14} style={{ display: "inline", marginRight: 5 }} />People</div><h1 className="display" style={{ fontSize: "3.6rem", margin: ".5rem 0" }}>Users</h1></div><section className="card" style={{ padding: "1.2rem", marginBottom: "1rem" }}><h2>Add a teammate</h2><p className="hint">They will be asked to replace the temporary password on first sign-in.</p><CreateUserForm /></section><div style={{ display: "grid", gap: ".8rem" }}>{rows.map((row) => <section className="card" key={row.id} style={{ padding: "1rem", opacity: row.active ? 1 : .62 }}><div style={{ display: "flex", justifyContent: "space-between", gap: ".5rem", alignItems: "center", marginBottom: ".8rem" }}><div><strong>{row.name}</strong>{row.id === current.user.id && <span className="pill" style={{ background: "var(--mint)", marginLeft: ".5rem" }}>You</span>}</div><span className="pill" style={{ background: row.role === "admin" ? "var(--sun)" : "#eef0f6" }}>{row.role}</span></div><form action={updateUserAction} style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: ".65rem", alignItems: "end" }}><input name="id" type="hidden" value={row.id} /><label className="label">Name<input className="field" name="name" defaultValue={row.name} /></label><label className="label">Email<input className="field" name="email" type="email" defaultValue={row.email} /></label><label className="label">Role<select className="field" name="role" defaultValue={row.role ?? "member"}><option value="member">Member</option><option value="admin">Admin</option></select></label><button className="button button-secondary">Save</button></form><div style={{ marginTop: ".8rem", paddingTop: ".8rem", borderTop: "1px solid var(--line)", display: "grid", gap: ".7rem" }}><PasswordResetForm userId={row.id} /><form action={toggleUserAction}><input name="id" type="hidden" value={row.id} /><input name="active" type="hidden" value={String(!row.active)} /><button className={`button ${row.active ? "button-danger" : "button-quiet"}`} disabled={row.id === current.user.id}>{row.active ? "Deactivate" : "Reactivate"}</button></form></div></section>)}</div></main>;
+}

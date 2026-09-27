@@ -1,0 +1,32 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: roomres
+      POSTGRES_USER: roomres
+      POSTGRES_PASSWORD: roomres
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./drizzle:/docker-entrypoint-initdb.d:ro
+      - ./docker/010-seed.sql:/docker-entrypoint-initdb.d/010-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roomres"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  roomres:
+    build: .
+    profiles: ["security-lab"]
+    environment:
+      DATABASE_URL: postgresql://roomres:roomres@postgres:5432/roomres
+      BETTER_AUTH_SECRET: local-security-lab-only-change-me
+      DD_ENABLED: "true"
+      DD_ENV: security-lab
+      DD_SERVICE: roomres
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "3000:3000"

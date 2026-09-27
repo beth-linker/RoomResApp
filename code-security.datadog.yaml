@@ -1,0 +1,24 @@
+schema-version: v1.5
+
+sast:
+  use-default-rulesets: true
+  ruleset-configs:
+    javascript-security:
+      ignore-paths:
+        - "drizzle/**"
+
+sca:
+  ignore-paths:
+    - "**/node_modules/**"
+
+iac:
+  ignore-paths:
+    - ".next/**"
+
+secrets:
+  global-config:
+    use-gitignore: true
+    ignore-generated-files: true
+    ignore-paths:
+      - "package-lock.json"
+      - "drizzle/meta/**"
