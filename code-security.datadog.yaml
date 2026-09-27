@@ -2,18 +2,18 @@ schema-version: v1.5
 
 sast:
   use-default-rulesets: true
-  ruleset-configs:
-    javascript-security:
-      ignore-paths:
-        - "drizzle/**"
+  global-config:
+    ignore-paths:
+      - "drizzle/**"
 
 sca:
   ignore-paths:
     - "**/node_modules/**"
 
 iac:
-  ignore-paths:
-    - ".next/**"
+  global-config:
+    ignore-paths:
+      - ".next/**"
 
 secrets:
   global-config:
