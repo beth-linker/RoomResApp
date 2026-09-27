@@ -1,6 +1,6 @@
 # RoomRes
 
-RoomRes is a colorful, mobile-friendly conference-room scheduling app for a small office. It is planned as a Next.js application hosted on Vercel, backed by Neon Postgres, and designed as a hands-on Datadog Code Security demonstration.
+RoomRes is a colorful, mobile-friendly conference-room scheduling app for a small office. It is planned as a Next.js application hosted on Vercel and backed by Neon Postgres.
 
 The first release will support:
 
@@ -9,11 +9,10 @@ The first release will support:
 - Conflict-safe room bookings
 - Seven preconfigured conference rooms
 - Responsive day, week, and mobile agenda views
-- Datadog SAST, SCA, secret scanning, pull-request feedback, and a local runtime-security lab
+- Automated code, dependency, and secret scanning
 
 See [docs/PLAN.md](docs/PLAN.md) for the complete product and implementation plan.
 
 ## Status
 
 Planning complete. Implementation has not started.
-
